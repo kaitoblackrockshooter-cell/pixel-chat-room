@@ -40,6 +40,7 @@ let player;
 let playerText;
 
 let cursors;
+let wasd;
 
 let otherPlayers = {};
 let nameTexts = {};
@@ -68,7 +69,7 @@ function create() {
         "player"
     );
 
-    player.setScale(0.3);
+    player.setScale(2);
 
     playerText = this.add.text(
         player.x - 20,
@@ -81,6 +82,13 @@ function create() {
     );
 
     cursors = this.input.keyboard.createCursorKeys();
+
+    wasd = this.input.keyboard.addKeys({
+        up: Phaser.Input.Keyboard.KeyCodes.W,
+        left: Phaser.Input.Keyboard.KeyCodes.A,
+        down: Phaser.Input.Keyboard.KeyCodes.S,
+        right: Phaser.Input.Keyboard.KeyCodes.D
+    });
 
     socket.on("players", (players) => {
 
@@ -158,19 +166,19 @@ function create() {
 
 function update() {
 
-    if (cursors.left.isDown) {
+    if (cursors.left.isDown || wasd.left.isDown) {
         player.x -= 4;
     }
 
-    if (cursors.right.isDown) {
+    if (cursors.right.isDown || wasd.right.isDown) {
         player.x += 4;
     }
 
-    if (cursors.up.isDown) {
+    if (cursors.up.isDown || wasd.up.isDown) {
         player.y -= 4;
     }
 
-    if (cursors.down.isDown) {
+    if (cursors.down.isDown || wasd.down.isDown) {
         player.y += 4;
     }
 
