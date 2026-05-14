@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+<meta charset="UTF-8">
+
+<title>Pixel Chat Room</title>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+
+</head>
+
+<body>
+
+<script>
+
+const socket = io();
+
+const playerName = prompt("名前を入力");
+
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: "#111111",
+    pixelArt: true,
+
+    scene: {
+        preload,
+        create,
+        update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+let player;
+let playerText;
+
+let cursors;
+
+let otherPlayers = {};
+let nameTexts = {};
+
+function preload() {
+
+    this.load.image(
+        "player",
+        "images/player.png"
+    );
+
+    this.load.image(
+        "room",
+        "images/room.png"
+    );
+}
+
+function create() {
+
+    this.add.image(400, 300, "room")
+        .setScale(0.5);
+
+    player = this.add.image(
+        400,
+        300,
+        "player"
+    );
+
+    player.setScale(0.3);
+
+    playerText = this.add.text(
+        player.x - 20,
+        player.y - 50,
+        playerName,
+        {
+            fontSize: "16px",
+            color: "#00ffff"
+        }
+    );
+
+    cursors = this.input.keyboard.createCursorKeys();
+
+    socket.on("players", (players) => {
+
+        for (let id in otherPlayers) {
+
+            otherPlayers[id].destroy();
+
+            if (nameTexts[id]) {
+                nameTexts[id].destroy();
+            }
+        }
+
+        otherPlayers = {};
+        nameTexts = {};
+
+        for (let id in players) {
+
+            if (id === socket.id) continue;
+
+            let p = players[id];
+
+            otherPlayers[id] = this.add.image(
+                p.x,
+                p.y,
+                "player"
+            );
+
+            otherPlayers[id].setScale(2);
+
+            nameTexts[id] = this.add.text(
+                p.x - 20,
+                p.y - 50,
+                p.name || "Player",
+                {
+                    fontSize: "16px",
+                    color: "#ffffff"
+                }
+            );
+        }
+    });
+
+    window.addEventListener("keydown", (event) => {
+
+        if (event.key === "Enter") {
+
+            let message = prompt("メッセージ");
+
+            if (message) {
+
+                socket.emit("chat", message);
+            }
+        }
+    });
+
+    socket.on("chat", (data) => {
+
+        let bubble = this.add.text(
+            player.x,
+            player.y - 80,
+            data.message,
+            {
+                fontSize: "20px",
+                color: "#ffffff",
+                backgroundColor: "#000000"
+            }
+        );
+
+        setTimeout(() => {
+
+            bubble.destroy();
+
+        }, 3000);
+    });
+}
+
+function update() {
+
+    if (cursors.left.isDown) {
+        player.x -= 4;
+    }
+
+    if (cursors.right.isDown) {
+        player.x += 4;
+    }
+
+    if (cursors.up.isDown) {
+        player.y -= 4;
+    }
+
+    if (cursors.down.isDown) {
+        player.y += 4;
+    }
+
+    playerText.x = player.x - 20;
+    playerText.y = player.y - 50;
+
+    socket.emit("move", {
+        x: player.x,
+        y: player.y,
+        name: playerName
+    });
+}
+
+</script>
+
+</body>
+</html>
