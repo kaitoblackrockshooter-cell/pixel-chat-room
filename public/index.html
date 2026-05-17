@@ -118,6 +118,8 @@ function create() {
 
             otherPlayers[id].setScale(2);
 
+            otherPlayers[id].flipX = p.flipX;
+
             nameTexts[id] = this.add.text(
                 p.x - 20,
                 p.y - 50,
@@ -167,11 +169,17 @@ function create() {
 function update() {
 
     if (cursors.left.isDown || wasd.left.isDown) {
+
         player.x -= 4;
+
+        player.flipX = true;
     }
 
     if (cursors.right.isDown || wasd.right.isDown) {
+
         player.x += 4;
+
+        player.flipX = false;
     }
 
     if (cursors.up.isDown || wasd.up.isDown) {
@@ -188,7 +196,8 @@ function update() {
     socket.emit("move", {
         x: player.x,
         y: player.y,
-        name: playerName
+        name: playerName,
+        flipX: player.flipX
     });
 }
 
