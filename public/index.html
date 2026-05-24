@@ -10,9 +10,58 @@
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
+<style>
+
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+#mobile-controls {
+
+    position: fixed;
+
+    bottom: 20px;
+    left: 20px;
+
+    z-index: 999;
+}
+
+#mobile-controls button {
+
+    width: 60px;
+    height: 60px;
+
+    font-size: 24px;
+
+    margin: 5px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background: rgba(0,0,0,0.6);
+
+    color: white;
+}
+
+</style>
+
 </head>
 
 <body>
+
+<div id="mobile-controls">
+
+    <button id="up">↑</button>
+
+    <div>
+        <button id="left">←</button>
+        <button id="down">↓</button>
+        <button id="right">→</button>
+    </div>
+
+</div>
 
 <script>
 
@@ -45,6 +94,18 @@ let wasd;
 let otherPlayers = {};
 let nameTexts = {};
 
+let targetX = null;
+let targetY = null;
+
+let chatBubble = null;
+
+let mobileMove = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+};
+
 function preload() {
 
     this.load.image(
@@ -69,7 +130,7 @@ function create() {
         "player"
     );
 
-    player.setScale(2);
+    player.setScale(0.3);
 
     playerText = this.add.text(
         player.x - 20,
@@ -116,7 +177,7 @@ function create() {
                 "player"
             );
 
-            otherPlayers[id].setScale(2);
+            otherPlayers[id].setScale(0.3);
 
             otherPlayers[id].flipX = p.flipX;
 
@@ -147,51 +208,139 @@ function create() {
 
     socket.on("chat", (data) => {
 
-        let bubble = this.add.text(
-            player.x,
+        if (chatBubble) {
+            chatBubble.destroy();
+        }
+
+        chatBubble = this.add.text(
+            player.x - 20,
             player.y - 80,
             data.message,
             {
                 fontSize: "20px",
                 color: "#ffffff",
-                backgroundColor: "#000000"
+                backgroundColor: "#000000",
+                padding: {
+                    x: 8,
+                    y: 4
+                }
             }
         );
 
         setTimeout(() => {
 
-            bubble.destroy();
+            if (chatBubble) {
+                chatBubble.destroy();
+                chatBubble = null;
+            }
 
         }, 3000);
     });
+
+    this.input.on("pointerdown", (pointer) => {
+
+        targetX = pointer.x;
+        targetY = pointer.y;
+    });
+
+    const setupButton = (id, direction) => {
+
+        const button = document.getElementById(id);
+
+        button.addEventListener("touchstart", () => {
+            mobileMove[direction] = true;
+        });
+
+        button.addEventListener("touchend", () => {
+            mobileMove[direction] = false;
+        });
+
+        button.addEventListener("mousedown", () => {
+            mobileMove[direction] = true;
+        });
+
+        button.addEventListener("mouseup", () => {
+            mobileMove[direction] = false;
+        });
+    };
+
+    setupButton("up", "up");
+    setupButton("down", "down");
+    setupButton("left", "left");
+    setupButton("right", "right");
 }
 
 function update() {
 
-    if (cursors.left.isDown || wasd.left.isDown) {
+    if (
+        cursors.left.isDown ||
+        wasd.left.isDown ||
+        mobileMove.left
+    ) {
 
         player.x -= 4;
 
         player.flipX = true;
     }
 
-    if (cursors.right.isDown || wasd.right.isDown) {
+    if (
+        cursors.right.isDown ||
+        wasd.right.isDown ||
+        mobileMove.right
+    ) {
 
         player.x += 4;
 
         player.flipX = false;
     }
 
-    if (cursors.up.isDown || wasd.up.isDown) {
+    if (
+        cursors.up.isDown ||
+        wasd.up.isDown ||
+        mobileMove.up
+    ) {
+
         player.y -= 4;
     }
 
-    if (cursors.down.isDown || wasd.down.isDown) {
+    if (
+        cursors.down.isDown ||
+        wasd.down.isDown ||
+        mobileMove.down
+    ) {
+
         player.y += 4;
+    }
+
+    if (targetX !== null && targetY !== null) {
+
+        if (player.x < targetX) {
+            player.x += 3;
+            player.flipX = false;
+        }
+
+        if (player.x > targetX) {
+            player.x -= 3;
+            player.flipX = true;
+        }
+
+        if (player.y < targetY) {
+            player.y += 3;
+        }
+
+        if (player.y > targetY) {
+            player.y -= 3;
+        }
     }
 
     playerText.x = player.x - 20;
     playerText.y = player.y - 50;
+
+    if (chatBubble) {
+
+        chatBubble.x = player.x - 20;
+        chatBubble.y = player.y - 80;
+    }
 
     socket.emit("move", {
         x: player.x,
